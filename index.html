@@ -227,7 +227,7 @@ var tb=document.getElementById("tabs");TABS.forEach(function(t,i){var b=document
 document.getElementById("cash-have").oninput=function(){S.cashHave=parseFloat(this.value)||0;save();renderMetrics();};
 document.getElementById("cash-goal").oninput=function(){S.cashGoal=parseFloat(this.value)||0;save();renderMetrics();};
 var fxRates={};
-function fetchFx(){fetch("https://api.frankfurter.app/latest?from=EUR").then(function(r){return r.json();}).then(function(d){fxRates=d.rates;fxRates.EUR=1;convertFx();}).catch(function(){document.getElementById("fx-rate").textContent="Nie udało się pobrać kursu.";});}
+function fetchFx(){fetch("https://open.er-api.com/v6/latest/EUR").then(function(r){return r.json();}).then(function(d){if(d.result==="success"){fxRates=d.rates;convertFx();}}).catch(function(){document.getElementById("fx-rate").textContent="Nie udało się pobrać kursu.";});}
 function convertFx(){var amt=parseFloat(document.getElementById("fx-amount").value)||0;var from=document.getElementById("fx-from").value;var to=document.getElementById("fx-to").value;if(!fxRates[from]||!fxRates[to]){document.getElementById("fx-result").textContent="Ładowanie...";return;}var rate=fxRates[to]/fxRates[from];var result=amt*rate;document.getElementById("fx-result").textContent=new Intl.NumberFormat("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2}).format(result)+" "+to;document.getElementById("fx-rate").textContent="1 "+from+" = "+rate.toFixed(4)+" "+to+" (kurs ECB)";}
 fetchFx();
 renderAll();
