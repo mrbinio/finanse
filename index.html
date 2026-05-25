@@ -7,6 +7,7 @@
 <title>Pulpit finansowy</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 :root{--bg:#f8f7f4;--card:#fff;--txt:#1a1a18;--txt2:#6b6a64;--txt3:#9a988f;--border:#e6e4db;--border2:#d2cfc2;--accent:#1F3864;--ok:#1D9E75;--mid:#BA7517;--long:#534AB7;--danger:#C00000}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -163,6 +164,41 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 <button class="btn" onclick="addNote()">+ Dopisz</button>
 <div id="notes" style="margin-top:12px"></div></div></div>
 
+<!-- BUDŻET -->
+<div class="panel" data-panel="budzet">
+<div class="card">
+<h3>Budżet miesięczny</h3>
+<p class="csub">Wybierz miesiąc i wpisz wydatki. Sumy liczą się automatycznie.</p>
+<div class="row"><span class="nm">Miesiąc</span><select id="bud-month" onchange="renderBudget()" style="flex:1"></select><button class="btn" onclick="addBudgetMonth()" style="margin-left:8px">+ Nowy miesiąc</button></div>
+</div>
+<div class="card">
+<div id="bud-items"></div>
+<button class="btn mt" onclick="addBudgetItem()">+ Dodaj pozycję</button>
+</div>
+<div class="card">
+<h3>Podsumowanie</h3>
+<div id="bud-summary"></div>
+</div>
+<div class="card">
+<h3>Wykres — wydatki vs pensja</h3>
+<div id="bud-chart" style="height:200px;display:flex;align-items:flex-end;gap:4px;padding-top:20px"></div>
+</div>
+</div>
+
+<!-- PAYSLIP -->
+<div class="panel" data-panel="payslip">
+<div class="card">
+<h3>Payslip</h3>
+<p class="csub">Wgraj PDF z Ericssona — odczytam pensję na rękę i dni urlopu.</p>
+<input type="file" id="payslip-file" accept=".pdf" onchange="parsePayslip(event)" style="margin-bottom:12px">
+<div id="payslip-result"></div>
+</div>
+<div class="card">
+<h3>Historia payslipów</h3>
+<div id="payslip-history"></div>
+</div>
+</div>
+
 <p class="foot">Nie porada inwestycyjna. Dane nie opuszczają przeglądarki. <a href="#" onclick="logout()" style="color:var(--txt3)">Wyloguj</a></p>
 </div>
 </div>
@@ -174,7 +210,7 @@ function logout(){firebase.auth().signOut();}
 firebase.auth().onAuthStateChanged(function(user){if(user){document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="block";}else{document.getElementById("login-screen").style.display="flex";document.getElementById("app").style.display="none";}});
 </script>
 <script>
-var TABS=[["majatek","Majątek"],["symulator","Symulator"],["waluty","Waluty"],["plan","Plan"],["kubelki","Kubełki"],["zasady","Zasady"],["notatnik","Notatnik"]];
+var TABS=[["majatek","Majątek"],["budzet","Budżet"],["payslip","Payslip"],["symulator","Symulator"],["waluty","Waluty"],["plan","Plan"],["kubelki","Kubełki"],["zasady","Zasady"],["notatnik","Notatnik"]];
 var DEF={accounts:{"se-inv":[{n:"Swedbank ISK",v:123947},{n:"Swedbank Future_ISK",v:15431},{n:"Swedbank ISK fond",v:5131},{n:"Avanza 7329063",v:6840},{n:"Avanza 7329071",v:6095},{n:"Revolut akcje",v:3987},{n:"Revolut Robo",v:4218},{n:"Revolut krypto",v:3088}],"se-pen":[{n:"ITP1 FOND",v:1218338},{n:"IPS",v:147284}],"pl":[{n:"eMakler GPW",v:18293},{n:"Fundusze PL",v:4793}]},cashHave:57000,cashGoal:150000,
 checks:[{t:"Maj: 10 000 na Amex (przed 27 maja)",d:false},{t:"Czerwiec: reszta Amexa ze zwrotu podatku",d:false},{t:"Ustalić cel poduszki (wydatki ×5)",d:false},{t:"Od lipca: 10 000/mies na poduszkę",d:false},{t:"Amex spłacać w całości co miesiąc",d:false},{t:"Wpisać wszystkie konta do pulpitu",d:false},{t:"Gdy poduszka pełna: uprościć platformy",d:false},{t:"Uprościć fundusze do 1-2 globalnych",d:false}],
 rules:["Wpłacam co miesiąc niezależnie od rynku.","Nie sprzedaję w panice.","Spadek = okazja, nie ucieczka.","Najpierw dług, potem poduszka, potem inwestycje.","Amex w całości co miesiąc.","Portfel sprawdzam raz na kwartał.","Niskie opłaty = pewny zysk.","Nie inwestuję w to czego nie rozumiem."],
@@ -183,6 +219,8 @@ cards:[{n:"Amex SAS",cashback:"SAS punkty",fee:"0 SEK/rok z warunkiem",rate:19.9
 simBudget:3000};
 var S;try{var r=localStorage.getItem("pf2");S=r?JSON.parse(r):JSON.parse(JSON.stringify(DEF));}catch(e){S=JSON.parse(JSON.stringify(DEF));}
 if(!S.cards)S.cards=DEF.cards;if(!S.simBudget)S.simBudget=DEF.simBudget;
+if(!S.budget)S.budget={"2026-01":{items:[{n:"Kredyt",v:17706},{n:"Swedbank card",v:150},{n:"Unionen",v:395},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Folksam",v:1163},{n:"Tre Kronor",v:255},{n:"Volvo",v:5371},{n:"American Express",v:4000},{n:"Klarna",v:488},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:1849},{n:"Fond",v:500},{n:"FordonSkatt",v:40},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199}],salary:51500,food:4000,savings:10000},"2026-02":{items:[{n:"Kredyt",v:17683},{n:"Swedbank card",v:150},{n:"Unionen",v:395},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Folksam",v:1165},{n:"Tre Kronor",v:255},{n:"Volvo",v:5393},{n:"American Express",v:2500},{n:"Klarna",v:464},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:1849},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199}],salary:51183,food:4000,savings:10000},"2026-03":{items:[{n:"Kredyt",v:17661},{n:"Swedbank card",v:150},{n:"Unionen",v:395},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Folksam",v:1164},{n:"Tre Kronor",v:255},{n:"Volvo",v:5390},{n:"American Express",v:7000},{n:"Klarna",v:1613},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:1849},{n:"Fond",v:500},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199},{n:"Bauhaus",v:199}],salary:52843,food:4000,savings:10000},"2026-04":{items:[{n:"Kredyt",v:14729},{n:"Swedbank card",v:150},{n:"Unionen",v:400},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Folksam",v:2010},{n:"Tre Kronor",v:255},{n:"Volvo",v:5425},{n:"American Express",v:2500},{n:"Klarna",v:1615},{n:"Sysnam",v:350},{n:"Fond",v:500},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199},{n:"Bauhaus",v:1660}],salary:51200,food:4000,savings:10000},"2026-05":{items:[{n:"Kredyt",v:20928},{n:"Swedbank card",v:150},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Folksam",v:2010}],salary:51287,food:4000,savings:10000}};
+if(!S.payslips)S.payslips=[];
 function save(){try{localStorage.setItem("pf2",JSON.stringify(S));}catch(e){}}
 function fmt(n,c){return new Intl.NumberFormat("pl-PL").format(Math.round(n))+" "+c;}
 function exportData(){var b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="pulpit-"+new Date().toISOString().slice(0,10)+".json";a.click();}
@@ -238,10 +276,44 @@ html+="Jeśli musisz rozłożyć: <strong>"+best.n+"</strong> ma najniższe opro
 }
 document.getElementById("sim-result").innerHTML='<div class="sim-result '+cls+'">'+html+'</div>';
 }
-function renderAll(){renderList("se-inv");renderList("se-pen");renderList("pl");document.getElementById("cash-have").value=S.cashHave||"";document.getElementById("cash-goal").value=S.cashGoal||"";document.getElementById("sim-budget").value=S.simBudget||3000;renderMetrics();renderChecklist();renderRules();renderNotes();renderCards();}
+function renderAll(){renderList("se-inv");renderList("se-pen");renderList("pl");document.getElementById("cash-have").value=S.cashHave||"";document.getElementById("cash-goal").value=S.cashGoal||"";document.getElementById("sim-budget").value=S.simBudget||3000;renderMetrics();renderChecklist();renderRules();renderNotes();renderCards();renderBudgetMonths();renderBudget();renderPayslipHistory();}
 var tb=document.getElementById("tabs");TABS.forEach(function(t,i){var b=document.createElement("button");b.className="tab"+(i===0?" active":"");b.textContent=t[1];b.onclick=function(){document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("active");});document.querySelectorAll(".panel").forEach(function(x){x.classList.remove("active");});b.classList.add("active");document.querySelector('.panel[data-panel="'+t[0]+'"]').classList.add("active");};tb.appendChild(b);});
 document.getElementById("cash-have").oninput=function(){S.cashHave=parseFloat(this.value)||0;save();renderMetrics();};
 document.getElementById("cash-goal").oninput=function(){S.cashGoal=parseFloat(this.value)||0;save();renderMetrics();};
+var fxRates={};
+// BUDGET
+function getBudgetKeys(){return Object.keys(S.budget).sort();}
+function renderBudgetMonths(){var sel=document.getElementById("bud-month");var cur=sel.value;sel.innerHTML="";getBudgetKeys().forEach(function(k){var o=document.createElement("option");o.value=k;o.textContent=k;sel.appendChild(o);});if(cur&&S.budget[cur])sel.value=cur;else if(getBudgetKeys().length)sel.value=getBudgetKeys()[getBudgetKeys().length-1];}
+function addBudgetMonth(){var d=new Date();var k=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");if(!S.budget[k])S.budget[k]={items:[],salary:51287,food:4000,savings:10000};save();renderBudgetMonths();document.getElementById("bud-month").value=k;renderBudget();}
+function curBudget(){var k=document.getElementById("bud-month").value;return S.budget[k]||null;}
+function renderBudget(){var b=curBudget();if(!b)return;var box=document.getElementById("bud-items");box.innerHTML="";
+box.innerHTML+='<div class="row" style="font-weight:600"><span class="nm">Pensja (na rękę)</span><input type="number" class="vl" id="bud-salary" value="'+(b.salary||"")+'" oninput="curBudget().salary=parseFloat(this.value)||0;save();renderBudSummary();"></div>';
+b.items.forEach(function(it,i){var d=document.createElement("div");d.className="row";d.innerHTML='<input type="text" class="nm" value="'+it.n+'" placeholder="Kategoria"><input type="number" class="vl" value="'+(it.v||"")+'" placeholder="0"><button class="del">×</button>';d.querySelector(".nm").oninput=function(){b.items[i].n=this.value;save();};d.querySelector(".vl").oninput=function(){b.items[i].v=parseFloat(this.value)||0;save();renderBudSummary();};d.querySelector(".del").onclick=function(){b.items.splice(i,1);save();renderBudget();};box.appendChild(d);});
+box.innerHTML+='<div class="row"><span class="nm">Jedzenie</span><input type="number" class="vl" id="bud-food" value="'+(b.food||"")+'" oninput="curBudget().food=parseFloat(this.value)||0;save();renderBudSummary();"></div>';
+box.innerHTML+='<div class="row"><span class="nm">Oszczędności</span><input type="number" class="vl" id="bud-sav" value="'+(b.savings||"")+'" oninput="curBudget().savings=parseFloat(this.value)||0;save();renderBudSummary();"></div>';
+renderBudSummary();renderBudChart();}
+function addBudgetItem(){var b=curBudget();if(!b)return;b.items.push({n:"",v:0});save();renderBudget();}
+function renderBudSummary(){var b=curBudget();if(!b)return;var total=b.items.reduce(function(a,x){return a+(x.v||0);},0);var salary=b.salary||0;var food=b.food||0;var sav=b.savings||0;var left=salary-total-food;var free=left-sav;
+document.getElementById("bud-summary").innerHTML='<div class="row"><span class="nm">Total rachunki</span><span class="vl" style="font-weight:600">'+fmt(total,"SEK")+'</span></div><div class="row"><span class="nm">Zostało (pensja - rachunki - jedzenie)</span><span class="vl" style="font-weight:600;color:'+(left>=0?"var(--ok)":"var(--danger)")+'">'+fmt(left,"SEK")+'</span></div><div class="row"><span class="nm">Do wydania (po oszczędnościach)</span><span class="vl" style="font-weight:600;color:'+(free>=0?"var(--ok)":"var(--danger)")+'">'+fmt(free,"SEK")+'</span></div>';}
+function renderBudChart(){var box=document.getElementById("bud-chart");box.innerHTML="";var keys=getBudgetKeys().slice(-6);if(!keys.length)return;var maxV=0;keys.forEach(function(k){var b=S.budget[k];var t=b.items.reduce(function(a,x){return a+(x.v||0);},0)+(b.food||0);if(b.salary>maxV)maxV=b.salary;if(t>maxV)maxV=t;});
+keys.forEach(function(k){var b=S.budget[k];var t=b.items.reduce(function(a,x){return a+(x.v||0);},0)+(b.food||0);var s=b.salary||0;var hT=maxV?Math.round(t/maxV*160):0;var hS=maxV?Math.round(s/maxV*160):0;
+box.innerHTML+='<div style="flex:1;text-align:center"><div style="display:flex;gap:2px;align-items:flex-end;justify-content:center;height:160px"><div style="width:16px;height:'+hT+'px;background:var(--danger);border-radius:3px 3px 0 0;opacity:.7" title="Wydatki: '+t+'"></div><div style="width:16px;height:'+hS+'px;background:var(--ok);border-radius:3px 3px 0 0;opacity:.7" title="Pensja: '+s+'"></div></div><div style="font-size:10px;color:var(--txt2);margin-top:4px">'+k.slice(5)+'</div></div>';});}
+// PAYSLIP
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+function parsePayslip(ev){var file=ev.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){var arr=new Uint8Array(reader.result);pdfjsLib.getDocument(arr).promise.then(function(pdf){pdf.getPage(1).then(function(page){page.getTextContent().then(function(tc){var text=tc.items.map(function(i){return i.str;}).join(" ");extractPayslip(text,file.name);});});});};reader.readAsArrayBuffer(file);}
+function extractPayslip(text,fname){
+var salary=0,vacPaid=0,vacSaved=0,month="";
+var m=text.match(/Transfer to bank[^\d]*([\d\s]+[,.][\d]+)/);if(m)salary=parseFloat(m[1].replace(/\s/g,"").replace(",","."));
+var mv=text.match(/Paid this year:\s*([\d,]+)/);if(mv)vacPaid=parseFloat(mv[1].replace(",","."));
+var ms=text.match(/Yr -2:\s*([\d,]+)/);if(ms)vacSaved+=parseFloat(ms[1].replace(",","."));
+var ms2=text.match(/Yr -1:\s*([\d,]+)/);if(ms2)vacSaved+=parseFloat(ms2[1].replace(",","."));
+var mm=text.match(/REMUNERATION STATEMENT\s+(\w+\s+\d{4})/);if(mm)month=mm[1];
+var entry={month:month,salary:salary,vacRemaining:vacPaid,vacSaved:vacSaved,file:fname,date:new Date().toISOString().slice(0,10)};
+S.payslips.unshift(entry);save();
+document.getElementById("payslip-result").innerHTML='<div class="sim-result sim-ok"><strong>'+month+'</strong><br>Na rękę: <strong>'+fmt(salary,"SEK")+'</strong><br>Urlop pozostały: <strong>'+vacPaid+' dni</strong><br>Urlop zaoszczędzony: <strong>'+vacSaved+' dni</strong></div>';
+renderPayslipHistory();}
+function renderPayslipHistory(){var box=document.getElementById("payslip-history");box.innerHTML="";if(!S.payslips||!S.payslips.length){box.innerHTML='<p style="font-size:12px;color:var(--txt3)">Brak wgranych payslipów.</p>';return;}
+S.payslips.forEach(function(p,i){var d=document.createElement("div");d.className="row";d.innerHTML='<span class="nm"><strong>'+p.month+'</strong> — '+fmt(p.salary,"SEK")+' | Urlop: '+p.vacRemaining+' dni</span><button class="del">×</button>';d.querySelector(".del").onclick=function(){S.payslips.splice(i,1);save();renderPayslipHistory();};box.appendChild(d);});}
 var fxRates={};
 function fetchFx(){fetch("https://open.er-api.com/v6/latest/EUR").then(function(r){return r.json();}).then(function(d){if(d.result==="success"){fxRates=d.rates;convertFx();}}).catch(function(){document.getElementById("fx-rate").textContent="Nie udało się pobrać kursu.";});}
 function convertFx(){var amt=parseFloat(document.getElementById("fx-amount").value)||0;var from=document.getElementById("fx-from").value;var to=document.getElementById("fx-to").value;if(!fxRates[from]||!fxRates[to]){document.getElementById("fx-result").textContent="Ładowanie...";return;}var rate=fxRates[to]/fxRates[from];var result=amt*rate;document.getElementById("fx-result").textContent=new Intl.NumberFormat("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2}).format(result)+" "+to;document.getElementById("fx-rate").textContent="1 "+from+" = "+rate.toFixed(4)+" "+to+" (kurs ECB)";}
