@@ -183,6 +183,11 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 <h3>Wykres — wydatki vs pensja</h3>
 <div id="bud-chart" style="height:200px;display:flex;align-items:flex-end;gap:4px;padding-top:20px"></div>
 </div>
+<div class="card">
+<h3>Kredyt na dom — historia rat</h3>
+<p class="csub">Miesięczna rata kredytu hipotecznego od 2025.</p>
+<div id="kredyt-chart" style="height:180px;position:relative;padding:20px 0"></div>
+</div>
 </div>
 
 <!-- PAYSLIP -->
@@ -301,7 +306,17 @@ function renderBudSummary(){var b=curBudget();if(!b)return;var total=b.items.red
 document.getElementById("bud-summary").innerHTML='<div class="row"><span class="nm">Total rachunki</span><span class="vl" style="font-weight:600">'+fmt(total,"SEK")+'</span></div><div class="row"><span class="nm">Zostało (pensja - rachunki - jedzenie)</span><span class="vl" style="font-weight:600;color:'+(left>=0?"var(--ok)":"var(--danger)")+'">'+fmt(left,"SEK")+'</span></div><div class="row"><span class="nm">Reszta (- oszczędności)</span><span class="vl" style="font-weight:600">'+fmt(free,"SEK")+'</span></div><div class="row"><span class="nm">Wydatki z kart</span><span class="vl">-'+fmt(extraTotal,"SEK")+'</span></div><div class="row"><span class="nm"><strong>Do Wydania (końcowe)</strong></span><span class="vl" style="font-weight:700;color:'+(afterExtra>=0?"var(--ok)":"var(--danger)")+'">'+fmt(afterExtra,"SEK")+'</span></div>';}
 function renderBudChart(){var box=document.getElementById("bud-chart");box.innerHTML="";var keys=getBudgetKeys().slice(-6);if(!keys.length)return;var maxV=0;keys.forEach(function(k){var b=S.budget[k];var t=b.items.reduce(function(a,x){return a+(x.v||0);},0)+(b.food||0);if(b.salary>maxV)maxV=b.salary;if(t>maxV)maxV=t;});
 keys.forEach(function(k){var b=S.budget[k];var t=b.items.reduce(function(a,x){return a+(x.v||0);},0)+(b.food||0);var s=b.salary||0;var hT=maxV?Math.round(t/maxV*160):0;var hS=maxV?Math.round(s/maxV*160):0;
-box.innerHTML+='<div style="flex:1;text-align:center"><div style="display:flex;gap:2px;align-items:flex-end;justify-content:center;height:160px"><div style="width:16px;height:'+hT+'px;background:var(--danger);border-radius:3px 3px 0 0;opacity:.7" title="Wydatki: '+t+'"></div><div style="width:16px;height:'+hS+'px;background:var(--ok);border-radius:3px 3px 0 0;opacity:.7" title="Pensja: '+s+'"></div></div><div style="font-size:10px;color:var(--txt2);margin-top:4px">'+k.slice(5)+'</div></div>';});}
+box.innerHTML+='<div style="flex:1;text-align:center"><div style="display:flex;gap:2px;align-items:flex-end;justify-content:center;height:160px"><div style="width:16px;height:'+hT+'px;background:var(--danger);border-radius:3px 3px 0 0;opacity:.7" title="Wydatki: '+t+'"></div><div style="width:16px;height:'+hS+'px;background:var(--ok);border-radius:3px 3px 0 0;opacity:.7" title="Pensja: '+s+'"></div></div><div style="font-size:10px;color:var(--txt2);margin-top:4px">'+k.slice(5)+'</div></div>';});
+renderKredytChart();}
+var KREDYT_DATA=[{m:"2025-01",v:20866},{m:"2025-02",v:20835},{m:"2025-03",v:19601},{m:"2025-04",v:19323},{m:"2025-05",v:19299},{m:"2025-06",v:19274},{m:"2025-07",v:19270},{m:"2025-08",v:19246},{m:"2025-09",v:18944},{m:"2025-10",v:18693},{m:"2025-11",v:18667},{m:"2025-12",v:17607},{m:"2026-01",v:17706},{m:"2026-02",v:17683},{m:"2026-03",v:17661},{m:"2026-04",v:14729},{m:"2026-05",v:20928}];
+function renderKredytChart(){var box=document.getElementById("kredyt-chart");var d=KREDYT_DATA;var maxV=Math.max.apply(null,d.map(function(x){return x.v;}));var minV=Math.min.apply(null,d.map(function(x){return x.v;}));var h=140;var w=box.offsetWidth||600;if(w<100)w=600;var step=w/(d.length-1);
+var pts=d.map(function(p,i){var y=h-((p.v-minV)/(maxV-minV||1))*h;return{x:i*step,y:y,v:p.v,m:p.m};});
+var svg='<svg width="100%" height="'+(h+40)+'" viewBox="0 0 '+w+' '+(h+40)+'" style="overflow:visible">';
+svg+='<polyline fill="none" stroke="#1F3864" stroke-width="2" points="'+pts.map(function(p){return p.x+","+(p.y+10);}).join(" ")+'"/>';
+pts.forEach(function(p,i){svg+='<circle cx="'+p.x+'" cy="'+(p.y+10)+'" r="3" fill="#1F3864"/>';if(i%3===0||i===d.length-1)svg+='<text x="'+p.x+'" y="'+(h+30)+'" font-size="9" fill="#6b6a64" text-anchor="middle">'+p.m.slice(2)+'</text>';});
+svg+='<text x="0" y="8" font-size="10" fill="#6b6a64">'+fmt(maxV,"")+'</text>';
+svg+='<text x="0" y="'+(h+8)+'" font-size="10" fill="#6b6a64">'+fmt(minV,"")+'</text>';
+svg+='</svg>';box.innerHTML=svg;}
 // PAYSLIP
 pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 function parsePayslip(ev){var file=ev.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){var arr=new Uint8Array(reader.result);pdfjsLib.getDocument(arr).promise.then(function(pdf){pdf.getPage(1).then(function(page){page.getTextContent().then(function(tc){var text=tc.items.map(function(i){return i.str;}).join(" ");extractPayslip(text,file.name);});});});};reader.readAsArrayBuffer(file);}
