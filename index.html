@@ -307,7 +307,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/p
 function parsePayslip(ev){var file=ev.target.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(){var arr=new Uint8Array(reader.result);pdfjsLib.getDocument(arr).promise.then(function(pdf){pdf.getPage(1).then(function(page){page.getTextContent().then(function(tc){var text=tc.items.map(function(i){return i.str;}).join(" ");extractPayslip(text,file.name);});});});};reader.readAsArrayBuffer(file);}
 function extractPayslip(text,fname){
 var salary=0,vacPaid=0,vacSaved=0,month="";
-var m=text.match(/Transfer to bank[^\d]*([\d\s]+[,.][\d]+)/);if(m)salary=parseFloat(m[1].replace(/\s/g,"").replace(",","."));
+var m=text.match(/Transfer to bank\s+\d{2}\/\d{4}\s+([\d\s]+,[\d]+)/);if(m)salary=parseFloat(m[1].replace(/\s/g,"").replace(",","."));
 var mv=text.match(/Paid this year:\s*([\d,]+)/);if(mv)vacPaid=parseFloat(mv[1].replace(",","."));
 var ms=text.match(/Yr -2:\s*([\d,]+)/);if(ms)vacSaved+=parseFloat(ms[1].replace(",","."));
 var ms2=text.match(/Yr -1:\s*([\d,]+)/);if(ms2)vacSaved+=parseFloat(ms2[1].replace(",","."));
