@@ -145,6 +145,16 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--accent);outline-
 <!-- ZASADY -->
 <div class="panel" data-panel="zasady"><div class="card"><h3>Zasady gry</h3><p class="csub">Czytaj gdy rynek spada albo chcesz coś kupić impulsywnie.</p><div id="rules"></div></div></div>
 
+<!-- CELE -->
+<div class="panel" data-panel="cele">
+<div class="card">
+<h3>Cele oszczędnościowe</h3>
+<p class="csub">Wpisz cel i kwotę — zobaczysz ile brakuje i kiedy uzbierasz.</p>
+<div id="goals-list"></div>
+<button class="btn mt" onclick="addGoal()">+ Dodaj cel</button>
+</div>
+</div>
+
 <!-- WALUTY -->
 <div class="panel" data-panel="waluty">
 <div class="card">
@@ -215,8 +225,8 @@ function logout(){firebase.auth().signOut();}
 firebase.auth().onAuthStateChanged(function(user){if(user){document.getElementById("login-screen").style.display="none";document.getElementById("app").style.display="block";}else{document.getElementById("login-screen").style.display="flex";document.getElementById("app").style.display="none";}});
 </script>
 <script>
-var TABS=[["majatek","Majątek"],["budzet","Budżet"],["payslip","Payslip"],["symulator","Symulator"],["waluty","Waluty"],["plan","Plan"],["kubelki","Kubełki"],["zasady","Zasady"],["notatnik","Notatnik"]];
-var DEF={accounts:{"se-inv":[{n:"Swedbank ISK",v:123947},{n:"Swedbank Future_ISK",v:15431},{n:"Swedbank ISK fond",v:5131},{n:"Avanza 7329063",v:6840},{n:"Avanza 7329071",v:6095},{n:"Revolut akcje",v:3987},{n:"Revolut Robo",v:4218},{n:"Revolut krypto",v:3088}],"se-pen":[{n:"ITP1 FOND",v:1218338},{n:"IPS",v:147284}],"pl":[{n:"eMakler GPW",v:18293},{n:"Fundusze PL",v:4793}]},cashHave:57000,cashGoal:150000,
+var TABS=[["majatek","Majątek"],["budzet","Budżet"],["payslip","Payslip"],["cele","Cele"],["symulator","Symulator"],["waluty","Waluty"],["plan","Plan"],["kubelki","Kubełki"],["zasady","Zasady"],["notatnik","Notatnik"]];
+var DEF={accounts:{"se-inv":[{n:"Swedbank ISK",v:126962},{n:"Swedbank Future_ISK",v:15493},{n:"Swedbank ISK fond",v:5179},{n:"Avanza 7329063",v:6840},{n:"Avanza 7329071",v:6095},{n:"Revolut akcje",v:3987},{n:"Revolut Robo",v:4218},{n:"Revolut krypto",v:3088}],"se-pen":[{n:"ITP1 FOND",v:1218338},{n:"IPS",v:150860}],"pl":[{n:"eMakler GPW",v:18293},{n:"Fundusze PL",v:4793}]},cashHave:57481,cashGoal:150000,
 checks:[{t:"Maj: 10 000 na Amex (przed 27 maja)",d:false},{t:"Czerwiec: reszta Amexa ze zwrotu podatku",d:false},{t:"Ustalić cel poduszki (wydatki ×5)",d:false},{t:"Od lipca: 10 000/mies na poduszkę",d:false},{t:"Amex spłacać w całości co miesiąc",d:false},{t:"Wpisać wszystkie konta do pulpitu",d:false},{t:"Gdy poduszka pełna: uprościć platformy",d:false},{t:"Uprościć fundusze do 1-2 globalnych",d:false}],
 rules:["Wpłacam co miesiąc niezależnie od rynku.","Nie sprzedaję w panice.","Spadek = okazja, nie ucieczka.","Najpierw dług, potem poduszka, potem inwestycje.","Amex w całości co miesiąc.","Portfel sprawdzam raz na kwartał.","Niskie opłaty = pewny zysk.","Nie inwestuję w to czego nie rozumiem."],
 notes:[],
@@ -226,6 +236,7 @@ var S;try{var r=localStorage.getItem("pf2");S=r?JSON.parse(r):JSON.parse(JSON.st
 if(!S.cards)S.cards=DEF.cards;if(!S.simBudget)S.simBudget=DEF.simBudget;
 if(!S.budget)S.budget={"2026-01":{items:[{n:"Kredyt",v:17706},{n:"Swedbank card",v:150},{n:"Telia",v:0},{n:"Unionen",v:395},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Google Play",v:0},{n:"Folksam",v:1163},{n:"Tre Kronor",v:255},{n:"Walley",v:0},{n:"Volvo",v:5371},{n:"Bauhaus",v:0},{n:"American Express",v:4000},{n:"Klarna",v:488},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:1849},{n:"Fond",v:500},{n:"FordonSkatt",v:40},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199},{n:"Różne",v:0}],salary:51500,food:4000,savings:10000,extra:[]},"2026-02":{items:[{n:"Kredyt",v:17683},{n:"Swedbank card",v:150},{n:"Telia",v:0},{n:"Unionen",v:395},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Google Play",v:0},{n:"Folksam",v:1165},{n:"Tre Kronor",v:255},{n:"Walley",v:0},{n:"Volvo",v:5393},{n:"Bauhaus",v:0},{n:"American Express",v:2500},{n:"Klarna",v:464},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:1849},{n:"Fond",v:0},{n:"FordonSkatt",v:0},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199},{n:"Różne",v:0}],salary:51183,food:4000,savings:10000,extra:[{n:"Idre",v:2245}]},"2026-03":{items:[{n:"Kredyt",v:17661},{n:"Swedbank card",v:150},{n:"Telia",v:0},{n:"Unionen",v:395},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Google Play",v:0},{n:"Folksam",v:1164},{n:"Tre Kronor",v:255},{n:"Walley",v:0},{n:"Volvo",v:5390},{n:"Bauhaus",v:199},{n:"American Express",v:7000},{n:"Klarna",v:1613},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:1849},{n:"Fond",v:500},{n:"FordonSkatt",v:0},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199},{n:"Różne",v:0}],salary:52843,food:4000,savings:10000,extra:[]},"2026-04":{items:[{n:"Kredyt",v:14729},{n:"Swedbank card",v:150},{n:"Telia",v:0},{n:"Unionen",v:400},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Google Play",v:0},{n:"Folksam",v:2010},{n:"Tre Kronor",v:255},{n:"Walley",v:0},{n:"Volvo",v:5425},{n:"Bauhaus",v:1660},{n:"American Express",v:2500},{n:"Klarna",v:1615},{n:"Sysnam",v:350},{n:"Ubezp. Auta",v:0},{n:"Fond",v:500},{n:"FordonSkatt",v:0},{n:"Investing",v:600},{n:"Swed försk",v:454},{n:"Netflix",v:199},{n:"Różne",v:0}],salary:51200,food:4000,savings:10000,extra:[]},"2026-05":{items:[{n:"Kredyt",v:20928},{n:"Swedbank card",v:150},{n:"Telia",v:0},{n:"Unionen",v:0},{n:"Internet",v:399},{n:"Komethallen",v:399},{n:"Google Play",v:0},{n:"Folksam",v:2010},{n:"Tre Kronor",v:0},{n:"Walley",v:0},{n:"Volvo",v:0},{n:"Bauhaus",v:0},{n:"American Express",v:0},{n:"Klarna",v:0},{n:"Sysnam",v:0},{n:"Ubezp. Auta",v:0},{n:"Fond",v:0},{n:"FordonSkatt",v:0},{n:"Investing",v:0},{n:"Swed försk",v:0},{n:"Netflix",v:0},{n:"Różne",v:0}],salary:51287,food:4000,savings:10000,extra:[]}};
 if(!S.payslips)S.payslips=[];
+if(!S.goals)S.goals=[{n:"Filipiny",target:15000,have:2902,monthly:2000},{n:"Narwik nurkowanie",target:8000,have:0,monthly:1500},{n:"Remont",target:50000,have:6000,monthly:3000}];
 function save(){try{localStorage.setItem("pf2",JSON.stringify(S));}catch(e){}}
 function fmt(n,c){return new Intl.NumberFormat("pl-PL").format(Math.round(n))+" "+c;}
 function exportData(){var b=new Blob([JSON.stringify(S,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="pulpit-"+new Date().toISOString().slice(0,10)+".json";a.click();}
@@ -281,7 +292,7 @@ html+="Jeśli musisz rozłożyć: <strong>"+best.n+"</strong> ma najniższe opro
 }
 document.getElementById("sim-result").innerHTML='<div class="sim-result '+cls+'">'+html+'</div>';
 }
-function renderAll(){renderList("se-inv");renderList("se-pen");renderList("pl");document.getElementById("cash-have").value=S.cashHave||"";document.getElementById("cash-goal").value=S.cashGoal||"";document.getElementById("sim-budget").value=S.simBudget||3000;renderMetrics();renderChecklist();renderRules();renderNotes();renderCards();renderBudgetMonths();renderBudget();renderPayslipHistory();}
+function renderAll(){renderList("se-inv");renderList("se-pen");renderList("pl");document.getElementById("cash-have").value=S.cashHave||"";document.getElementById("cash-goal").value=S.cashGoal||"";document.getElementById("sim-budget").value=S.simBudget||3000;renderMetrics();renderChecklist();renderRules();renderNotes();renderCards();renderBudgetMonths();renderBudget();renderPayslipHistory();renderGoals();}
 var tb=document.getElementById("tabs");TABS.forEach(function(t,i){var b=document.createElement("button");b.className="tab"+(i===0?" active":"");b.textContent=t[1];b.onclick=function(){document.querySelectorAll(".tab").forEach(function(x){x.classList.remove("active");});document.querySelectorAll(".panel").forEach(function(x){x.classList.remove("active");});b.classList.add("active");document.querySelector('.panel[data-panel="'+t[0]+'"]').classList.add("active");};tb.appendChild(b);});
 document.getElementById("cash-have").oninput=function(){S.cashHave=parseFloat(this.value)||0;save();renderMetrics();};
 document.getElementById("cash-goal").oninput=function(){S.cashGoal=parseFloat(this.value)||0;save();renderMetrics();};
@@ -337,6 +348,15 @@ document.getElementById("payslip-result").innerHTML='<div class="sim-result sim-
 renderPayslipHistory();}
 function renderPayslipHistory(){var box=document.getElementById("payslip-history");box.innerHTML="";if(!S.payslips||!S.payslips.length){box.innerHTML='<p style="font-size:12px;color:var(--txt3)">Brak wgranych payslipów.</p>';return;}
 S.payslips.forEach(function(p,i){var d=document.createElement("div");d.className="row";d.innerHTML='<span class="nm"><strong>'+p.month+'</strong> — '+fmt(p.salary,"SEK")+' | Urlop: '+p.vacRemaining+' dni</span><button class="del">×</button>';d.querySelector(".del").onclick=function(){S.payslips.splice(i,1);save();renderPayslipHistory();};box.appendChild(d);});}
+// GOALS
+function renderGoals(){var box=document.getElementById("goals-list");box.innerHTML="";
+S.goals.forEach(function(g,i){var left=Math.max(0,(g.target||0)-(g.have||0));var months=g.monthly>0?Math.ceil(left/g.monthly):999;var pct=g.target>0?Math.min(100,Math.round((g.have||0)/g.target*100)):0;var col=pct>=100?"var(--ok)":pct>=50?"var(--mid)":"var(--danger)";
+var d=document.createElement("div");d.className="card";d.style.marginBottom="12px";
+d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:14px">'+g.n+'</strong><button class="del">×</button></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:10px 0"><div><label style="font-size:11px;color:var(--txt2)">Cel</label><input type="number" class="vl" value="'+(g.target||"")+'" data-f="target" style="width:100%;text-align:left"></div><div><label style="font-size:11px;color:var(--txt2)">Mam</label><input type="number" class="vl" value="'+(g.have||"")+'" data-f="have" style="width:100%;text-align:left"></div><div><label style="font-size:11px;color:var(--txt2)">Odkładam/mies.</label><input type="number" class="vl" value="'+(g.monthly||"")+'" data-f="monthly" style="width:100%;text-align:left"></div></div><div class="bar"><div class="barfill" style="width:'+pct+'%;background:'+col+'"></div></div><p style="font-size:12px;color:var(--txt2);margin-top:6px">'+pct+'% — brakuje '+fmt(left,"SEK")+(months<999?' — uzbierasz za ~'+months+' mies.':'')+'</p>';
+d.querySelector(".del").onclick=function(){S.goals.splice(i,1);save();renderGoals();};
+d.querySelectorAll("input").forEach(function(inp){inp.oninput=function(){S.goals[i][inp.dataset.f]=parseFloat(inp.value)||0;save();renderGoals();};});
+box.appendChild(d);});}
+function addGoal(){S.goals.push({n:"Nowy cel",target:10000,have:0,monthly:1000});save();renderGoals();}
 var fxRates={};
 function fetchFx(){fetch("https://open.er-api.com/v6/latest/EUR").then(function(r){return r.json();}).then(function(d){if(d.result==="success"){fxRates=d.rates;convertFx();}}).catch(function(){document.getElementById("fx-rate").textContent="Nie udało się pobrać kursu.";});}
 function convertFx(){var amt=parseFloat(document.getElementById("fx-amount").value)||0;var from=document.getElementById("fx-from").value;var to=document.getElementById("fx-to").value;if(!fxRates[from]||!fxRates[to]){document.getElementById("fx-result").textContent="Ładowanie...";return;}var rate=fxRates[to]/fxRates[from];var result=amt*rate;document.getElementById("fx-result").textContent=new Intl.NumberFormat("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2}).format(result)+" "+to;document.getElementById("fx-rate").textContent="1 "+from+" = "+rate.toFixed(4)+" "+to+" (kurs ECB)";}
