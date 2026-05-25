@@ -313,7 +313,11 @@ var ms=text.match(/Yr -2:\s*([\d,]+)/);if(ms)vacSaved+=parseFloat(ms[1].replace(
 var ms2=text.match(/Yr -1:\s*([\d,]+)/);if(ms2)vacSaved+=parseFloat(ms2[1].replace(",","."));
 var mm=text.match(/REMUNERATION STATEMENT\s+(\w+\s+\d{4})/);if(mm)month=mm[1];
 var entry={month:month,salary:salary,vacRemaining:vacPaid,vacSaved:vacSaved,file:fname,date:new Date().toISOString().slice(0,10)};
-S.payslips.unshift(entry);save();
+S.payslips.unshift(entry);
+// Auto-fill budget salary
+var monthMap={January:"01",February:"02",March:"03",April:"04",May:"05",June:"06",July:"07",August:"08",September:"09",October:"10",November:"11",December:"12"};
+var parts=month.split(/\s+/);if(parts.length===2){var mk=parts[1]+"-"+(monthMap[parts[0]]||"01");if(S.budget[mk]){S.budget[mk].salary=salary;}else{S.budget[mk]={items:[],salary:salary,food:4000,savings:10000,extra:[]};}renderBudgetMonths();renderBudget();}
+save();
 document.getElementById("payslip-result").innerHTML='<div class="sim-result sim-ok"><strong>'+month+'</strong><br>Na rękę: <strong>'+fmt(salary,"SEK")+'</strong><br>Urlop pozostały: <strong>'+vacPaid+' dni</strong><br>Urlop zaoszczędzony: <strong>'+vacSaved+' dni</strong></div>';
 renderPayslipHistory();}
 function renderPayslipHistory(){var box=document.getElementById("payslip-history");box.innerHTML="";if(!S.payslips||!S.payslips.length){box.innerHTML='<p style="font-size:12px;color:var(--txt3)">Brak wgranych payslipów.</p>';return;}
